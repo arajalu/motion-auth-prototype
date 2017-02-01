@@ -71,9 +71,8 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
             linear_acceleration[0] = event.values[0] - gravity[0];
             linear_acceleration[1] = event.values[1] - gravity[1];
             linear_acceleration[2] = event.values[2] - gravity[2];
-            System.out.println(String.valueOf(event.timestamp));
 
-            System.out.println("filtered Sensor data : " + Arrays.toString(linear_acceleration));
+            Log.d("acc log","filtered Sensor data : " + Arrays.toString(linear_acceleration));
             int i=0;
             //Make it red if there is change in acceleration beyond threshold
             for (float val:tmpacc) {
