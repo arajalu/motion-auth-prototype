@@ -21,11 +21,31 @@
         android:elevation="13dp" />
 
     <TextView
-        android:text="Debug:"
+        android:text="x:"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/btn_hold"
+        android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginBottom="49dp"
-        android:id="@+id/acc_debug" />
+        android:layout_marginTop="137dp"
+        android:id="@+id/acc_x" />
+
+    <TextView
+        android:text="y:"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/acc_x"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"
+        android:id="@+id/acc_y" />
+
+    <TextView
+        android:text="z:"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/acc_y"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="19dp"
+        android:id="@+id/acc_z" />
+
+
 </RelativeLayout>
