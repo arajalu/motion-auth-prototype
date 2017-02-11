@@ -45,7 +45,7 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         GraphView graph = (GraphView) findViewById(R.id.graph);
         sensorManager.registerListener
-                (Graph.this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+                (Graph.this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
 //        LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>(new DataPoint[] {
 //                new DataPoint(0, 1),
 //                new DataPoint(1, 5),
@@ -58,11 +58,11 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
         mTimer = new Runnable() {
             @Override
             public void run() {
-                graphLastXValue += 0.10d;
-                mSeriesx.appendData(new DataPoint(graphLastXValue, tmpacc[0]), true, 40);
-                mSeriesy.appendData(new DataPoint(graphLastXValue, tmpacc[1]), true, 40);
-                mSeriesz.appendData(new DataPoint(graphLastXValue, tmpacc[2]), true, 40);
-                mHandler.postDelayed(mTimer, 100);
+                graphLastXValue += 0.05d;
+                mSeriesx.appendData(new DataPoint(graphLastXValue, tmpacc[0]), true, 80);
+                mSeriesy.appendData(new DataPoint(graphLastXValue, tmpacc[1]), true, 80);
+                mSeriesz.appendData(new DataPoint(graphLastXValue, tmpacc[2]), true, 80);
+                mHandler.postDelayed(mTimer, 50);
             }
         };
         mHandler.postDelayed(mTimer, 100);
@@ -71,9 +71,12 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 
     public void initGraph(GraphView graph) {
         graph.getViewport().setXAxisBoundsManual(true);
+        graph.getViewport().setYAxisBoundsManual(true);
         graph.getViewport().setMinX(0);
         graph.getViewport().setMaxX(4);
 
+        graph.getViewport().setMinY(-10);
+        graph.getViewport().setMaxY(10);
         graph.getGridLabelRenderer().setLabelVerticalWidth(100);
 
         // x
@@ -117,6 +120,7 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
             linear_acceleration[2] = event.values[2] - gravity[2];
             Log.d("acc log","filtered Sensor data : " + Arrays.toString(linear_acceleration));
             int i=0;
+
             for (float val:linear_acceleration) {
                 tmpacc[i++]=val;
             }

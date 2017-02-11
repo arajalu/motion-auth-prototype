@@ -15,7 +15,6 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class SetGesture extends AppCompatActivity implements SensorEventListener {
     private SensorManager sensorManager;
@@ -50,7 +49,7 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
                     Log.d("Debug::", "Down");
                     sensorLog = new ArrayList<>();
                     sensorManager.registerListener
-                            (SetGesture.this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+                            (SetGesture.this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
                     break;
                 case MotionEvent.ACTION_UP:
                     Log.d("Debug::", "Up");
@@ -72,7 +71,7 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
             linear_acceleration[1] = event.values[1] - gravity[1];
             linear_acceleration[2] = event.values[2] - gravity[2];
 
-            Log.d("acc log","filtered Sensor data : " + Arrays.toString(linear_acceleration));
+            //Log.d("acc log","filtered Sensor data : " + Arrays.toString(linear_acceleration));
             int i=0;
             //Make it red if there is change in acceleration beyond threshold
             for (float val:tmpacc) {
@@ -91,7 +90,8 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
             acc_tv[0].setText("x:"+String.valueOf(linear_acceleration[0]));
             acc_tv[1].setText("y:"+String.valueOf(linear_acceleration[1]));
             acc_tv[2].setText("z:"+String.valueOf(linear_acceleration[2]));
-            sensorLog.add(new Pair<>(event.timestamp,new float[]{linear_acceleration[0], linear_acceleration[1], linear_acceleration[2]}));
+            Log.d("acc log","DATA: " + linear_acceleration[0]+"\t"+linear_acceleration[1]+"\t"+linear_acceleration[2]);
+            //sensorLog.add(new Pair<>(event.timestamp,new float[]{linear_acceleration[0], linear_acceleration[1], linear_acceleration[2]}));
 
 
         }
