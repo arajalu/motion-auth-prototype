@@ -20,6 +20,9 @@ import com.jjoe64.graphview.LegendRenderer;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+import org.opencv.android.OpenCVLoader;
+import org.opencv.ml.SVM;
+
 import java.util.ArrayList;
 
 public class SetGesture extends AppCompatActivity implements SensorEventListener {
@@ -39,6 +42,7 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
 
     private Object mPauseLock;
     private boolean mPaused;
+    private static SVM svm;
 
 
     @Override
@@ -53,6 +57,7 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         btnHold= (Button)findViewById(R.id.btn_hold);
         btnHold.setOnTouchListener(holdListener);
+
 //        acc_tv[0] = (TextView)findViewById(R.id.acc_x);
 //        acc_tv[1] = (TextView)findViewById(R.id.acc_y);
 //        acc_tv[2] = (TextView)findViewById(R.id.acc_z);
@@ -70,6 +75,14 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
             }
         };
         mHandler.postDelayed(mTimer, 100);
+
+        if (!OpenCVLoader.initDebug()) {
+            Log.e(this.getClass().getSimpleName(), "  OpenCVLoader.initDebug(), not working.");
+        } else {
+            Log.d(this.getClass().getSimpleName(), "  OpenCVLoader.initDebug(), working.");
+        }
+        svm= SVM.create();
+        svm.setType(SVM.ONE_CLASS);
 
     }
 
