@@ -167,7 +167,7 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
 //            acc_tv[0].setText("x:"+String.valueOf(linear_acceleration[0]));
 //            acc_tv[1].setText("y:"+String.valueOf(linear_acceleration[1]));
 //            acc_tv[2].setText("z:"+String.valueOf(linear_acceleration[2]));
-            Log.d("acc log","DATA: "+event.timestamp+"\t"+ linear_acceleration[0]+"\t"+linear_acceleration[1]+"\t"+linear_acceleration[2]);
+            Log.d("acc log","DATA:\t"+event.timestamp+"\t"+ event.values[0]+"\t"+event.values[1]+"\t"+event.values[2]+"\t"+ linear_acceleration[0]+"\t"+linear_acceleration[1]+"\t"+linear_acceleration[2]);
             //sensorLog.add(new Pair<>(event.timestamp,new float[]{linear_acceleration[0], linear_acceleration[1], linear_acceleration[2]}));
 
 
