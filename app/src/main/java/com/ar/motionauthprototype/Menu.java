@@ -7,8 +7,7 @@ import android.view.View;
 import android.widget.Button;
 
 public class Menu extends AppCompatActivity {
-    private Button btnSetGesture;
-    private Button btnLockScreen;
+    private Button btnSetGesture,btnLockScreen,btnTest;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -17,6 +16,7 @@ public class Menu extends AppCompatActivity {
         setContentView(R.layout.activity_menu);
         btnSetGesture =(Button)findViewById(R.id.btn_set_gesture);
         btnLockScreen = (Button)findViewById(R.id.btn_lock_screen);
+        btnTest = (Button)findViewById(R.id.btn_test);
 
         btnSetGesture.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -28,6 +28,12 @@ public class Menu extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(Menu.this,LockScreen.class));
+            }
+        });
+        btnTest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(Menu.this,TestActivity.class));
             }
         });
     }

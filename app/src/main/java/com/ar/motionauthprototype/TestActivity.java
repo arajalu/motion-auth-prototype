@@ -12,8 +12,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.util.Pair;
 import android.view.MotionEvent;
@@ -27,6 +27,9 @@ import com.jjoe64.graphview.LegendRenderer;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+import org.opencv.android.OpenCVLoader;
+import org.opencv.ml.SVM;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -34,9 +37,7 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import libsvm.svm_problem;
-
-public class SetGesture extends AppCompatActivity implements SensorEventListener {
+public class TestActivity extends AppCompatActivity implements SensorEventListener {
     private SensorManager sensorManager;
     private Sensor accelerometer;
     final float alpha = 0.8f;
@@ -55,19 +56,18 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
 
     private Object mPauseLock;
     private boolean mPaused;
+    private static SVM svm;
 
     private static final int REQUEST_CODE = 0x11;
 
     String[] permissions = {"android.permission.WRITE_EXTERNAL_STORAGE"};
-
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setTitle("Set Gesture");
-        ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE); // without sdk version check
-        setContentView(R.layout.activity_set_gesture);
+        setContentView(R.layout.activity_test);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
         mPauseLock = new Object();
         mPaused = false;
         GraphView graph = (GraphView) findViewById(R.id.graph);
@@ -94,7 +94,14 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
         };
         mHandler.postDelayed(mTimer, 100);
 
-        svm_problem prob = new svm_problem();
+        if (!OpenCVLoader.initDebug()) {
+            Log.e(this.getClass().getSimpleName(), "  OpenCVLoader.initDebug(), not working.");
+        } else {
+            Log.d(this.getClass().getSimpleName(), "  OpenCVLoader.initDebug(), working.");
+        }
+
+        svm= SVM.create();
+        svm.setType(SVM.ONE_CLASS);
     }
 
     public void initGraph(GraphView graph) {
@@ -136,15 +143,14 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
                 case MotionEvent.ACTION_DOWN:
                     Log.d("Debug::", "Down");
                     sensorData = new ArrayList<>();
-                    sensorManager.registerListener
-                            (SetGesture.this, accelerometer,SensorManager.SENSOR_DELAY_FASTEST);
+                    sensorManager.registerListener(TestActivity.this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
                     break;
                 case MotionEvent.ACTION_UP:
                     Log.d("Debug::", "Up");
                     Long starting=0l;
-                    sensorManager.unregisterListener(SetGesture.this);
+                    sensorManager.unregisterListener(TestActivity.this);
                     if (sensorData.size() > 150) {
-                        Toast.makeText(SetGesture.this, "OK", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(TestActivity.this, "OK", Toast.LENGTH_SHORT).show();
                         first=1;
                         for(Pair<Long,float[]> pair : sensorData){
                             if(first==1){
@@ -155,20 +161,18 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
                             allcsvData+=(pair.first-starting)+",";
                             allcsvData+=pair.second[0]+","+pair.second[1]+","+pair.second[2];
                             allcsvData+="\n";
-
                         }
 
                         count++;
                         btnHold.setText(Integer.toString(3-count));
                         Arrays.fill(gravity,0f);
-                        if (count== 3){
-                            SaveDataToFile(sensorData, SetGesture.this, count);
-
+                        if (count== 1){
+                            SaveDataToFile(sensorData, TestActivity.this, count);
                             startActivity(new Intent(getApplicationContext(),Menu.class));
                         }
                     }
                     else {
-                        Toast.makeText(SetGesture.this, "Try holding the button longer", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(TestActivity.this, "Try holding the button longer", Toast.LENGTH_SHORT).show();
                     }
 
                     break;
@@ -224,7 +228,7 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
         File Dir = new File(Environment.getExternalStorageDirectory()+"/accData");
         Dir.mkdirs();
 
-        String fileName = "train.csv";
+        String fileName = "test" + Integer.toString(curveCount)+".csv";
         File file = new File(Dir, fileName);
         if (file.exists()){
             file.delete();
@@ -266,7 +270,5 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
             }
         }
     }
+
 }
-
-//Libsvm format:The format of training and testing data file is:<label> <index1>:<value1> <index2>:<value2> ...
-
