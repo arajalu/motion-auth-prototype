@@ -20,21 +20,13 @@
         android:id="@+id/btn_set_gesture" />
 
     <Button
-        android:text="Verify"
+        android:text="Lock Screen"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="34dp"
-        android:id="@+id/btn_test"
-        android:layout_below="@+id/btn_set_gesture"
-        android:layout_centerHorizontal="true" />
-
-    <Button
-        android:text="--"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="42dp"
+        android:layout_marginTop="116dp"
         android:id="@+id/btn_lock_screen"
-        android:layout_below="@+id/btn_test"
-        android:layout_centerHorizontal="true" />
+        android:layout_below="@+id/btn_set_gesture"
+        android:layout_alignEnd="@+id/btn_set_gesture"
+        android:layout_alignStart="@+id/btn_set_gesture" />
 
 </RelativeLayout>
