@@ -20,7 +20,7 @@
         android:id="@+id/btn_set_gesture" />
 
     <Button
-        android:text="Test Data"
+        android:text="Verify"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="34dp"
@@ -29,12 +29,12 @@
         android:layout_centerHorizontal="true" />
 
     <Button
-        android:text="Lock Screen"
+        android:text="--"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="42dp"
         android:id="@+id/btn_lock_screen"
         android:layout_below="@+id/btn_test"
-        android:layout_alignEnd="@+id/btn_set_gesture" />
+        android:layout_centerHorizontal="true" />
 
 </RelativeLayout>

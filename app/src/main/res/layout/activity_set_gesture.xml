@@ -19,11 +19,10 @@
         android:text="Hold and make gesture"
         android:layout_width="match_parent"
         android:layout_height="100dp"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="39dp"
         android:id="@+id/btn_hold"
-        android:elevation="13dp" />
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        />
 
     <!--<TextView-->
         <!--android:text="x:"-->

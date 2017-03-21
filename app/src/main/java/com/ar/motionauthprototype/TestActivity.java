@@ -1,7 +1,6 @@
 package com.ar.motionauthprototype;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.hardware.Sensor;
@@ -12,6 +11,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -22,41 +22,37 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.dtw.FastDTW;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.LegendRenderer;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
+import com.util.DistanceFunction;
+import com.util.DistanceFunctionFactory;
 
-import org.opencv.android.OpenCVLoader;
-import org.opencv.ml.SVM;
-
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class TestActivity extends AppCompatActivity implements SensorEventListener {
     private SensorManager sensorManager;
     private Sensor accelerometer;
-    final float alpha = 0.8f;
-    float[] gravity=new float[3];
-    float[] linear_acceleration=new float[3];
-    private ArrayList<Pair<Long, float[]>> sensorData;
+    final double alpha = 0.8f;
+    double[] gravity=new double[3];
+    double[] linear_acceleration=new double[3];
+    private ArrayList<Pair<Long, double[]>> sensorData;
     private Button btnHold;
     private TextView[] acc_tv =new TextView[3];
-    private float[] tmpacc=new float[]{0f,0f,0f};
+    private double[] tmpacc=new double[]{0f,0f,0f};
     private final Handler mHandler = new Handler();
     private Runnable mTimer;
     private double graphLastXValue = 5d;
     private LineGraphSeries<DataPoint> mSeriesx,mSeriesy,mSeriesz;
-    private int count = 0,first=1;
-    private String allcsvData="class,time,x,y,z\n";
 
     private Object mPauseLock;
     private boolean mPaused;
-    private static SVM svm;
+    private String csvData="";
 
     private static final int REQUEST_CODE = 0x11;
 
@@ -64,7 +60,7 @@ public class TestActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_test);
+        setContentView(R.layout.content_test);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -76,12 +72,8 @@ public class TestActivity extends AppCompatActivity implements SensorEventListen
         btnHold= (Button)findViewById(R.id.btn_hold);
         btnHold.setOnTouchListener(holdListener);
 
-//        acc_tv[0] = (TextView)findViewById(R.id.acc_x);
-//        acc_tv[1] = (TextView)findViewById(R.id.acc_y);
-//        acc_tv[2] = (TextView)findViewById(R.id.acc_z);
 
         initGraph(graph);
-        Thread t = new Thread();
         mTimer = new Runnable() {
             @Override
             public void run() {
@@ -94,14 +86,7 @@ public class TestActivity extends AppCompatActivity implements SensorEventListen
         };
         mHandler.postDelayed(mTimer, 100);
 
-        if (!OpenCVLoader.initDebug()) {
-            Log.e(this.getClass().getSimpleName(), "  OpenCVLoader.initDebug(), not working.");
-        } else {
-            Log.d(this.getClass().getSimpleName(), "  OpenCVLoader.initDebug(), working.");
-        }
 
-        svm= SVM.create();
-        svm.setType(SVM.ONE_CLASS);
     }
 
     public void initGraph(GraphView graph) {
@@ -142,34 +127,33 @@ public class TestActivity extends AppCompatActivity implements SensorEventListen
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     Log.d("Debug::", "Down");
+                    csvData="";
+
                     sensorData = new ArrayList<>();
                     sensorManager.registerListener(TestActivity.this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
                     break;
                 case MotionEvent.ACTION_UP:
+
                     Log.d("Debug::", "Up");
-                    Long starting=0l;
                     sensorManager.unregisterListener(TestActivity.this);
                     if (sensorData.size() > 150) {
-                        Toast.makeText(TestActivity.this, "OK", Toast.LENGTH_SHORT).show();
-                        first=1;
-                        for(Pair<Long,float[]> pair : sensorData){
-                            if(first==1){
-                                first=0;
-                                starting=pair.first;
-                            }
-                            allcsvData+="a,";
-                            allcsvData+=(pair.first-starting)+",";
-                            allcsvData+=pair.second[0]+","+pair.second[1]+","+pair.second[2];
-                            allcsvData+="\n";
+                        for(Pair<Long,double[]> pair : sensorData){
+                            csvData+=pair.second[0]+","+pair.second[1]+","+pair.second[2];
+                            csvData+="\n";
+                        }
+                        SaveDataToFile(sensorData,TestActivity.this, 99);
+                        Toast.makeText(TestActivity.this, "Verifying...", Toast.LENGTH_SHORT).show();
+//                        double[][] recordedGesture = Gesture.prepForCompare(sensorData);
+                        if (isCloseEnough()) {
+                            //TODO: respond
+//                            finish();
+                            Log.d("Debug::", "Welcome!");
+                            Snackbar.make(findViewById(R.id.activity_set_gesture), "Welcome!", Snackbar.LENGTH_SHORT).show();
+                        }else {
+                            Log.d("Debug::", "Incorrect gesture,Try Again.");
+                            Snackbar.make(findViewById(R.id.activity_set_gesture), "Incorrect gesture,Try Again.", Snackbar.LENGTH_SHORT).show();
                         }
 
-                        count++;
-                        btnHold.setText(Integer.toString(3-count));
-                        Arrays.fill(gravity,0f);
-                        if (count== 1){
-                            SaveDataToFile(sensorData, TestActivity.this, count);
-                            startActivity(new Intent(getApplicationContext(),Menu.class));
-                        }
                     }
                     else {
                         Toast.makeText(TestActivity.this, "Try holding the button longer", Toast.LENGTH_SHORT).show();
@@ -194,25 +178,10 @@ public class TestActivity extends AppCompatActivity implements SensorEventListen
 
             //Log.d("acc log","filtered Sensor data : " + Arrays.toString(linear_acceleration));
             int i=0;
-            //Make it red if there is change in acceleration beyond threshold
-//            for (float val:tmpacc) {
-//                if((linear_acceleration[i]-val)>0.1){
-//                    //red
-//                    acc_tv[i].setTextColor(Color.parseColor("#d42e2e"));
-//                }else{
-//                    acc_tv[i++].setTextColor(Color.parseColor("#0d9839"));
-//                }
-//            }
-            i=0;
-            for (float val:linear_acceleration) {
+            for (double val:linear_acceleration) {
                 tmpacc[i++]=val;
             }
-
-//            acc_tv[0].setText("x:"+String.valueOf(linear_acceleration[0]));
-//            acc_tv[1].setText("y:"+String.valueOf(linear_acceleration[1]));
-//            acc_tv[2].setText("z:"+String.valueOf(linear_acceleration[2]));
-//            Log.d("acc log","DATA:\t"+event.timestamp+"\t"+ event.values[0]+"\t"+event.values[1]+"\t"+event.values[2]+"\t"+ linear_acceleration[0]+"\t"+linear_acceleration[1]+"\t"+linear_acceleration[2]);
-            sensorData.add(new Pair<>(System.nanoTime(),new float[]{linear_acceleration[0],linear_acceleration[1],linear_acceleration[2]}));
+             sensorData.add(new Pair<>(System.nanoTime(),new double[]{linear_acceleration[0],linear_acceleration[1],linear_acceleration[2]}));
 
 
         }
@@ -223,39 +192,70 @@ public class TestActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
-    public void SaveDataToFile(ArrayList<Pair<Long, float[]>> sensorData, Activity activity, int curveCount) {
-        Long starting=0l;
+    public void SaveDataToFile(ArrayList<Pair<Long, double[]>> sensorData, Activity activity, int curveCount) {
         File Dir = new File(Environment.getExternalStorageDirectory()+"/accData");
         Dir.mkdirs();
-
-        String fileName = "test" + Integer.toString(curveCount)+".csv";
+        String fileName = "c" + Integer.toString(curveCount);
         File file = new File(Dir, fileName);
-        if (file.exists()){
+        File csvFile = new File(Dir,"c" + Integer.toString(curveCount)+".csv");
+        //Deleting already existing files
+        if (file.exists() || csvFile.exists()){
             file.delete();
+            csvFile.delete();
             Log.d("FILEDELETE","DELETED");
         }
         try{
+            csvFile.createNewFile();
             file.createNewFile();
         }catch(Exception e){
-            e.getMessage();
+            e.printStackTrace();
         }
-
-
-        FileOutputStream fos ;
+        FileOutputStream fos,cfos ;
         try {
             fos = new FileOutputStream(file);
-            BufferedOutputStream bos = new BufferedOutputStream(fos);
-            OutputStreamWriter osw = new OutputStreamWriter(fos);
-
-            Log.d("csv",allcsvData);
-            osw.write(allcsvData);
+            cfos = new FileOutputStream(csvFile);
+            OutputStreamWriter osw = new OutputStreamWriter(cfos);
+//            Log.d("csv",csvData);
+            osw.write(csvData);
             osw.flush();
             osw.close();
+
+
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(activity, "Save file failed", Toast.LENGTH_SHORT).show();
         }
 
+    }
+    
+    private boolean isCloseEnough() {
+        File Dir = new File(Environment.getExternalStorageDirectory()+"/accData");
+        Dir.mkdirs();
+        final com.timeseries.TimeSeries ts0 = new com.timeseries.TimeSeries("c0.csv", false, false, ',');
+        final com.timeseries.TimeSeries ts1 = new com.timeseries.TimeSeries("c1.csv", false, false, ',');
+        final com.timeseries.TimeSeries ts2 = new com.timeseries.TimeSeries("c2.csv", false, false, ',');
+        final com.timeseries.TimeSeries tsU = new com.timeseries.TimeSeries("c99.csv", false, false, ',');
+        final DistanceFunction distFn;
+        distFn = DistanceFunctionFactory.getDistFnByName("EuclideanDistance");
+        double avgDist=(FastDTW.getWarpInfoBetween(tsU,ts0,10,distFn).getDistance()+
+                FastDTW.getWarpInfoBetween(tsU,ts1,10,distFn).getDistance()+
+                FastDTW.getWarpInfoBetween(tsU,ts2,10,distFn).getDistance())/3;
+        File dirFiles[] = new File(Dir,"").listFiles();
+        double initialDist = 0;
+        for (File aFile : dirFiles) {
+            if (aFile.getName().startsWith("d")) {
+                String restOfFileName = aFile.getName().substring(1);
+                initialDist = Double.parseDouble(restOfFileName);
+                break;
+            }
+        }
+        System.out.println("Original distance " + Double.toString(initialDist));
+        System.out.println("Found distance " + Double.toString(avgDist));
+        System.out.println("Ratio" + Double.toString( avgDist/initialDist));
+
+        if (avgDist / initialDist < 1.35)
+            return true;
+        return false;
     }
 
     @Override

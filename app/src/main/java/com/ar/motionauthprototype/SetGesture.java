@@ -22,36 +22,41 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.dtw.FastDTW;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.LegendRenderer;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
+import com.util.DistanceFunction;
+import com.util.DistanceFunctionFactory;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import libsvm.svm_problem;
+import static org.apache.commons.math3.stat.StatUtils.mean;
 
 public class SetGesture extends AppCompatActivity implements SensorEventListener {
     private SensorManager sensorManager;
     private Sensor accelerometer;
-    final float alpha = 0.8f;
-    float[] gravity=new float[3];
-    float[] linear_acceleration=new float[3];
-    private ArrayList<Pair<Long, float[]>> sensorData;
+    final double alpha = 0.8f;
+    double[] gravity=new double[3];
+    double[] linear_acceleration=new double[3];
+    private ArrayList<Pair<Long, double[]>> sensorData;
+    private ArrayList<Double> rollAvg;
+    private ArrayList<Double> accAvg;
     private Button btnHold;
     private TextView[] acc_tv =new TextView[3];
-    private float[] tmpacc=new float[]{0f,0f,0f};
+    private double[] tmpacc=new double[]{0f,0f,0f};
     private final Handler mHandler = new Handler();
     private Runnable mTimer;
     private double graphLastXValue = 5d;
     private LineGraphSeries<DataPoint> mSeriesx,mSeriesy,mSeriesz;
     private int count = 0,first=1;
-    private String allcsvData="class,time,x,y,z\n";
+    private String csvData="";
 
     private Object mPauseLock;
     private boolean mPaused;
@@ -94,7 +99,6 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
         };
         mHandler.postDelayed(mTimer, 100);
 
-        svm_problem prob = new svm_problem();
     }
 
     public void initGraph(GraphView graph) {
@@ -135,35 +139,75 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     Log.d("Debug::", "Down");
+                    csvData="";
                     sensorData = new ArrayList<>();
                     sensorManager.registerListener
                             (SetGesture.this, accelerometer,SensorManager.SENSOR_DELAY_FASTEST);
+
                     break;
                 case MotionEvent.ACTION_UP:
                     Log.d("Debug::", "Up");
                     Long starting=0l;
+                    double rollavg=0f;
                     sensorManager.unregisterListener(SetGesture.this);
                     if (sensorData.size() > 150) {
                         Toast.makeText(SetGesture.this, "OK", Toast.LENGTH_SHORT).show();
-                        first=1;
-                        for(Pair<Long,float[]> pair : sensorData){
-                            if(first==1){
-                                first=0;
-                                starting=pair.first;
-                            }
-                            allcsvData+="a,";
-                            allcsvData+=(pair.first-starting)+",";
-                            allcsvData+=pair.second[0]+","+pair.second[1]+","+pair.second[2];
-                            allcsvData+="\n";
 
+                        for(Pair<Long,double[]> pair : sensorData){
+                            csvData+=pair.second[0]+","+pair.second[1]+","+pair.second[2];
+                            csvData+="\n";
                         }
+                        SaveDataToFile(sensorData, SetGesture.this, count);
+//                        first=1;
+//                        rollAvg.clear();
+//                        for(Pair<Long,double[]> pair : sensorData){
+//                            rollavg=0f;
+//                            if(first==1){
+//                                first=0;
+//                                starting=pair.first;
+//                            }
+//                            accAvg.add((pair.second[0]+pair.second[1]+pair.second[2])/3);
+//                            for(double a : accAvg){
+//                                rollavg+=a;
+//                            }
+//                            rollavg=rollavg/accAvg.size();
+//                            rollAvg.add(rollavg);
+//                            allcsvData+="a,";
+//                            allcsvData+=(pair.first-starting)+",";
+//                            allcsvData+=pair.second[0]+","+pair.second[1]+","+pair.second[2];
+//                            allcsvData+="\n";
+//
+//                        }
+                        Log.d("Debug::",Environment.getExternalStorageDirectory()+"/accData/CC" );
 
                         count++;
                         btnHold.setText(Integer.toString(3-count));
                         Arrays.fill(gravity,0f);
                         if (count== 3){
-                            SaveDataToFile(sensorData, SetGesture.this, count);
+                            try {
 
+                                double dist = getInitialDistance();
+                                Log.d("Debug::",Environment.getExternalStorageDirectory()+"/accData/" + "d" + Double.toString(dist));
+                                File Dir = new File(Environment.getExternalStorageDirectory()+"/accData");
+                                Dir.mkdirs();
+                                //Deleteing previous dist file
+                                File dirFiles[] = new File(Dir,"").listFiles();
+                                String restOfFileName="";
+                                for (File aFile : dirFiles) {
+                                    if (aFile.getName().startsWith("d")) {
+                                        restOfFileName = aFile.getName().substring(1);
+                                        File dfile = new File(Dir, "d"+restOfFileName);
+                                        if (dfile.exists()){
+                                            dfile.delete();
+                                            Log.d("Debug::",restOfFileName+" DELETED");
+                                        }
+                                    }
+                                }
+                                //creating new dist file
+                                new File(Dir ,"d" + Double.toString(dist)).createNewFile();
+                            }catch (Exception e){
+                                e.getMessage();
+                            }
                             startActivity(new Intent(getApplicationContext(),Menu.class));
                         }
                     }
@@ -176,6 +220,73 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
             return true;
         }
     };
+
+    private double getInitialDistance() throws IOException, ClassNotFoundException {
+        File Dir = new File(Environment.getExternalStorageDirectory()+"/accData");
+        Dir.mkdirs();
+
+        final com.timeseries.TimeSeries ts0 = new com.timeseries.TimeSeries("c0.csv", false, false, ',');
+        final com.timeseries.TimeSeries ts1 = new com.timeseries.TimeSeries("c1.csv", false, false, ',');
+        final com.timeseries.TimeSeries ts2 = new com.timeseries.TimeSeries("c2.csv", false, false, ',');
+        final DistanceFunction distFn;
+        distFn = DistanceFunctionFactory.getDistFnByName("EuclideanDistance");
+        return (FastDTW.getWarpInfoBetween(ts0,ts1,10,distFn).getDistance()+
+                FastDTW.getWarpInfoBetween(ts0,ts2,10,distFn).getDistance()+
+                FastDTW.getWarpInfoBetween(ts1,ts2,10,distFn).getDistance())/3;
+    }
+
+    public static int WINDOW_SIZE = 7;
+    public static double[] rollingAvg(double[] signal, int windowSize) {
+        ArrayList<Double> window = new ArrayList<>();
+        double[] smoothedSignal = signal.clone();
+        for (int i = 0; i < Math.min(windowSize, smoothedSignal.length); i++) {
+            window.add(smoothedSignal[i]);
+            smoothedSignal[i] = mean(doubleArrayListToArray(window));
+        }
+        for (int i = windowSize; i < smoothedSignal.length; i++) {
+            window.remove(0);
+            window.add(smoothedSignal[i]);
+            smoothedSignal[i] = mean(doubleArrayListToArray(window));
+        }
+        return smoothedSignal;
+    }
+
+    public static double[][] smooth(ArrayList<Pair<Long, double[]>> sensorLog) {
+        double[] x = new double[sensorLog.size()];
+        double[] y = new double[sensorLog.size()];
+        double[] z = new double[sensorLog.size()];
+
+        // load data to vectors
+        for (int i = 0; i < sensorLog.size(); i++) {
+            double[] record = sensorLog.get(i).second;
+            x[i] = record[0];
+            y[i] = record[1];
+            z[i] = record[2];
+        }
+
+        // smooth it
+        System.out.println("startSmooth");
+        x = rollingAvg(x, WINDOW_SIZE);
+        y = rollingAvg(y, WINDOW_SIZE);
+        z = rollingAvg(z, WINDOW_SIZE);
+        System.out.println("endSmooth");
+
+        double[][] ret = new double[sensorLog.size()][3];
+        for (int i = 0; i < sensorLog.size(); i++) {
+            ret[i] = new double[]{x[i], y[i], z[i]};
+        }
+        return ret;
+    }
+
+    public static double[] doubleArrayListToArray(ArrayList<Double> inArray) {
+        double[] ret = new double[inArray.size()];
+        for (int i = 0; i < inArray.size(); i++) {
+            ret[i] = inArray.get(i);
+        }
+        return ret;
+    }
+
+
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -191,7 +302,7 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
             //Log.d("acc log","filtered Sensor data : " + Arrays.toString(linear_acceleration));
             int i=0;
             //Make it red if there is change in acceleration beyond threshold
-//            for (float val:tmpacc) {
+//            for (double val:tmpacc) {
 //                if((linear_acceleration[i]-val)>0.1){
 //                    //red
 //                    acc_tv[i].setTextColor(Color.parseColor("#d42e2e"));
@@ -200,7 +311,7 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
 //                }
 //            }
             i=0;
-            for (float val:linear_acceleration) {
+            for (double val:linear_acceleration) {
                 tmpacc[i++]=val;
             }
 
@@ -208,7 +319,7 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
 //            acc_tv[1].setText("y:"+String.valueOf(linear_acceleration[1]));
 //            acc_tv[2].setText("z:"+String.valueOf(linear_acceleration[2]));
 //            Log.d("acc log","DATA:\t"+event.timestamp+"\t"+ event.values[0]+"\t"+event.values[1]+"\t"+event.values[2]+"\t"+ linear_acceleration[0]+"\t"+linear_acceleration[1]+"\t"+linear_acceleration[2]);
-            sensorData.add(new Pair<>(System.nanoTime(),new float[]{linear_acceleration[0],linear_acceleration[1],linear_acceleration[2]}));
+            sensorData.add(new Pair<>(System.nanoTime(),new double[]{linear_acceleration[0],linear_acceleration[1],linear_acceleration[2]}));
 
 
         }
@@ -219,34 +330,36 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
 
     }
 
-    public void SaveDataToFile(ArrayList<Pair<Long, float[]>> sensorData, Activity activity, int curveCount) {
+    public void SaveDataToFile(ArrayList<Pair<Long, double[]>> sensorData, Activity activity, int curveCount) {
         Long starting=0l;
         File Dir = new File(Environment.getExternalStorageDirectory()+"/accData");
         Dir.mkdirs();
-
-        String fileName = "train.csv";
+        String fileName = "c" + Integer.toString(curveCount);
         File file = new File(Dir, fileName);
-        if (file.exists()){
+        File csvFile = new File(Dir,"c" + Integer.toString(curveCount)+".csv");
+        if (file.exists() || csvFile.exists()){
             file.delete();
+            csvFile.delete();
             Log.d("FILEDELETE","DELETED");
         }
         try{
+            csvFile.createNewFile();
             file.createNewFile();
         }catch(Exception e){
-            e.getMessage();
+            e.printStackTrace();
         }
-
-
-        FileOutputStream fos ;
+        FileOutputStream fos,cfos ;
         try {
             fos = new FileOutputStream(file);
-            BufferedOutputStream bos = new BufferedOutputStream(fos);
-            OutputStreamWriter osw = new OutputStreamWriter(fos);
-
-            Log.d("csv",allcsvData);
-            osw.write(allcsvData);
+            cfos = new FileOutputStream(csvFile);
+//            BufferedOutputStream bos = new BufferedOutputStream(cfos);
+            OutputStreamWriter osw = new OutputStreamWriter(cfos);
+//            Log.d("csv",csvData);
+            osw.write(csvData);
             osw.flush();
             osw.close();
+
+
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(activity, "Save file failed", Toast.LENGTH_SHORT).show();
@@ -267,6 +380,4 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
         }
     }
 }
-
-//Libsvm format:The format of training and testing data file is:<label> <index1>:<value1> <index2>:<value2> ...
 
