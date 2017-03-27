@@ -222,7 +222,7 @@ public class LockScreen extends AppCompatActivity implements SensorEventListener
         }
         FileOutputStream fos,cfos ;
         try {
-            fos = new FileOutputStream(file);
+//            fos = new FileOutputStream(file);
             cfos = new FileOutputStream(csvFile);
             OutputStreamWriter osw = new OutputStreamWriter(cfos);
 //            Log.d("csv",csvData);

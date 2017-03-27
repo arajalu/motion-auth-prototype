@@ -37,8 +37,6 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import static org.apache.commons.math3.stat.StatUtils.mean;
-
 public class SetGesture extends AppCompatActivity implements SensorEventListener {
     private SensorManager sensorManager;
     private Sensor accelerometer;
@@ -234,59 +232,6 @@ public class SetGesture extends AppCompatActivity implements SensorEventListener
                 FastDTW.getWarpInfoBetween(ts0,ts2,10,distFn).getDistance()+
                 FastDTW.getWarpInfoBetween(ts1,ts2,10,distFn).getDistance())/3;
     }
-
-    public static int WINDOW_SIZE = 7;
-    public static double[] rollingAvg(double[] signal, int windowSize) {
-        ArrayList<Double> window = new ArrayList<>();
-        double[] smoothedSignal = signal.clone();
-        for (int i = 0; i < Math.min(windowSize, smoothedSignal.length); i++) {
-            window.add(smoothedSignal[i]);
-            smoothedSignal[i] = mean(doubleArrayListToArray(window));
-        }
-        for (int i = windowSize; i < smoothedSignal.length; i++) {
-            window.remove(0);
-            window.add(smoothedSignal[i]);
-            smoothedSignal[i] = mean(doubleArrayListToArray(window));
-        }
-        return smoothedSignal;
-    }
-
-    public static double[][] smooth(ArrayList<Pair<Long, double[]>> sensorLog) {
-        double[] x = new double[sensorLog.size()];
-        double[] y = new double[sensorLog.size()];
-        double[] z = new double[sensorLog.size()];
-
-        // load data to vectors
-        for (int i = 0; i < sensorLog.size(); i++) {
-            double[] record = sensorLog.get(i).second;
-            x[i] = record[0];
-            y[i] = record[1];
-            z[i] = record[2];
-        }
-
-        // smooth it
-        System.out.println("startSmooth");
-        x = rollingAvg(x, WINDOW_SIZE);
-        y = rollingAvg(y, WINDOW_SIZE);
-        z = rollingAvg(z, WINDOW_SIZE);
-        System.out.println("endSmooth");
-
-        double[][] ret = new double[sensorLog.size()][3];
-        for (int i = 0; i < sensorLog.size(); i++) {
-            ret[i] = new double[]{x[i], y[i], z[i]};
-        }
-        return ret;
-    }
-
-    public static double[] doubleArrayListToArray(ArrayList<Double> inArray) {
-        double[] ret = new double[inArray.size()];
-        for (int i = 0; i < inArray.size(); i++) {
-            ret[i] = inArray.get(i);
-        }
-        return ret;
-    }
-
-
 
     @Override
     public void onSensorChanged(SensorEvent event) {
