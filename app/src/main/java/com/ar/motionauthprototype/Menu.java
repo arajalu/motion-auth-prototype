@@ -7,8 +7,7 @@ import android.view.View;
 import android.widget.Button;
 
 public class Menu extends AppCompatActivity {
-    private Button btnSetGesture;
-    private Button btnLockScreen;
+    private Button btnSetGesture,btnLockScreen,btnTest;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
